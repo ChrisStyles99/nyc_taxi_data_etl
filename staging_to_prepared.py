@@ -14,12 +14,15 @@ def staging_to_prepared():
   df_vendor = df_jan[['vendor_id', 'vendor_name']].unique().sort(by='vendor_id', descending=False)
 
   df_trip = df_jan.drop(['vendor_id', 'vendor_name', 'payment_type_name', 'pickup_borough', 'pickup_zone', 'pickup_service_zone',
-                         'dropout_borough', 'dropout_zone', 'dropout_service_zone'])
+                         'dropout_borough', 'dropout_zone', 'dropout_service_zone', 'rate_code_type'])
   
-  df_trip = df_trip.with_columns(
-    pl.lit(str(uuid4())).alias('trip_id')
-  )
-  
-  print(df_trip)
+  df_trip = df_trip.with_row_index(name='trip_id')\
+    .with_columns(pl.concat_str([pl.col('trip_id'), pl.col('pickup_datetime').str.replace(r'\s', '_')]).alias('trip_id'))
+
+  df_trip.write_parquet('./data/prepared/fact_trip.parquet')
+  df_payment.write_parquet('./data/prepared/dim_payment.parquet')
+  df_ratecode.write_parquet('./data/prepared/dim_ratecode.parquet')
+  df_vendor.write_parquet('./data/prepared/dim_vendor.parquet')
+  df_location.write_parquet('./data/prepared/dim_location.parquet')
 
 staging_to_prepared()
